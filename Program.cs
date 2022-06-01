@@ -6,7 +6,7 @@ namespace _132134412312
         
         static void Main()
         {
-            Application.Run(new Form1());
+            Application.Run(new Form1() { ClientSize = new Size(1024,768)});
         }
     }
 }
