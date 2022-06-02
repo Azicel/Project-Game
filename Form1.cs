@@ -24,6 +24,7 @@ namespace _132134412312
         public int Lives = 0;
         public Player PlayerPlane = new Player();
         public List<Enemy> Enemies = new List<Enemy>();
+        public List<Boss> Bosses = new List<Boss>();
         public Boolean GameStarted = false;
         public static int FormWidth;
         public static int FormHeight;
@@ -34,9 +35,13 @@ namespace _132134412312
         {
             var rand = new Random();
             var enemy = new Enemy();
+            var boss = new Boss() { Position = new Point(-256,256)};
             var checkEnemyCount = new System.Windows.Forms.Timer();
             var enemyMove = new System.Windows.Forms.Timer();
             var enemyShot = new System.Windows.Forms.Timer();
+            var bossNeeded = new System.Windows.Forms.Timer() { Interval = 25000 };
+            var bossShoot = new System.Windows.Forms.Timer();
+            var bossMove = new System.Windows.Forms.Timer();
             InitializeComponent();
             InitializeMenu();
             PlayerPlane.AdaptPosition(ClientSize.Width, ClientSize.Height);
@@ -61,7 +66,8 @@ namespace _132134412312
                 InitializeGame();
                 checkEnemyCount.Start();
                 enemyMove.Start();
-                enemyShot.Start();              
+                enemyShot.Start();
+                bossNeeded.Start();
             };
             MediumDiffculty.Click += (sender, args) =>
             {
@@ -71,6 +77,7 @@ namespace _132134412312
                 checkEnemyCount.Start();
                 enemyMove.Start();
                 enemyShot.Start();
+                bossNeeded.Start();
             };
             HardDiffculty.Click += (sender, args) =>
             {
@@ -80,6 +87,7 @@ namespace _132134412312
                 checkEnemyCount.Start();
                 enemyMove.Start();
                 enemyShot.Start();
+                bossNeeded.Start();
             };
             PauseGame.Click += (sender, args) =>
             {
@@ -107,8 +115,6 @@ namespace _132134412312
                 if (GameStarted)
                 {
                     PlayerPlane.Shoot();
-                    var bulletHit = new Bullet();
-                    var isHit = false;
                     foreach (var bull in PlayerPlane.Bullets)
                     {
                         bull.Shoot(bull.Position, Bullet.Directions.Up);
@@ -120,37 +126,69 @@ namespace _132134412312
                             g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
                             g.DrawImage(bull.PlayerBulletImg, bull.Position);
                         };
-                        for (int i = 0; i < Enemies.Count; i++)
+                        if (bull.IsActive)
                         {
-                            if (bull.IsInsideTarget(enemy.EnemyImg, Enemies[i].Position))
+                            for (int i = 0; i < Enemies.Count; i++)
                             {
-                                var enemyShot = Enemies[i];
-                                Invalidate();
-                                Paint += (sender, args) =>
+                                if (bull.IsInsideTarget(enemy.EnemyImg, Enemies[i].Position))
                                 {
-                                    var g = args.Graphics;
-                                    g.DrawImage(BackGround, enemyShot.Position.X, enemyShot.Position.Y);
-                                    foreach (var bull in enemyShot.Bullets)
+                                    var enemyShot = Enemies[i];
+                                    Invalidate();
+                                    Paint += (sender, args) =>
                                     {
-                                        g.DrawImage(BackGround,
-                                            new Rectangle(bull.Position.X, bull.Position.Y,
-                                            bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
+                                        var g = args.Graphics;
+                                        g.DrawImage(BackGround, enemyShot.Position.X, enemyShot.Position.Y);
+                                        foreach (var bull in enemyShot.Bullets)
+                                        {
+                                            g.DrawImage(BackGround,
+                                                new Rectangle(bull.Position.X, bull.Position.Y,
+                                                bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
+                                        }
+                                    };
+                                    bull.IsActive = false;
+                                    Enemies.RemoveAt(i);
+                                    Score++;
+                                    ScoreLabel.Text = "Очки: " + Score.ToString();
+                                    if (Score % 5 == 0 && Score != 0)
+                                        EnemyCount++;
+                                    break;
+                                }
+                            }
+                            if (boss.IsSpawned)
+                            {
+                                if (bull.IsInsideTarget(boss.BossImg, Bosses.Last().Position))
+                                {
+                                    Bosses.Last().Lives--;
+                                    bull.IsActive = false;
+                                    if (Bosses.Last().Lives <= 0)
+                                    {
+                                        var bossData = Bosses.Last();
+                                        Invalidate();
+                                        Paint += (sender, args) =>
+                                        {
+                                            var g = args.Graphics;
+                                            foreach (var bull in bossData.Bullets)
+                                            {
+                                                g.DrawImage(BackGround,
+                                                    new Rectangle(bull.Position.X, bull.Position.Y,
+                                                    bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
+                                            }
+                                        };
+                                        Bosses.Clear();
+                                        boss.IsSpawned = false;
+                                        Score += 10;
+                                        Lives++;
+                                        LivesLabel.Text = "Жизни: " + Lives.ToString();
+                                        ScoreLabel.Text = "Очки: " + Score.ToString();
+                                        EnemyCount += 2;
+                                        checkEnemyCount.Start();
+                                        enemyMove.Start();
+                                        enemyShot.Start();
                                     }
-                                };
-                                bulletHit = bull;
-                                isHit = true;
-                                Enemies.RemoveAt(i);
-                                Score++;
-                                ScoreLabel.Text = "Очки: " + Score.ToString();
-                                if (Score % 5 == 0 && Score != 0)
-                                    EnemyCount++;
-                                break;
+                                }
                             }
                         }
                     }
-                    if (isHit)
-                        PlayerPlane.Bullets.Remove(bulletHit);
-                    isHit = false;
                 }
             };
             SpawnEnemy.Interval = 3000;
@@ -229,12 +267,90 @@ namespace _132134412312
                                 enemyShot.Stop();
                                 enemyMove.Stop();
                                 checkEnemyCount.Stop();
+                                bossShoot.Stop();
+                                bossMove.Stop();
+                                bossNeeded.Stop();
                             }
                         }
                     }
                 }
             };
+            bossNeeded.Tick += (sender, args) =>
+            {
+                if (GameStarted && !boss.IsSpawned)
+                {
+                    if (Score >= 0)
+                    {
+                        Bosses.Add(new Boss() { Position = new Point(rand.Next(256, ClientSize.Width - 256), 30) });
+                        SpawnEnemy.Stop();
+                        checkEnemyCount.Stop();
+                        bossShoot.Start();
+                        bossMove.Start();
+                        boss.IsSpawned = true;
+                        bossNeeded.Interval = 30000;
+                        Invalidate();
+                        Paint += (sender, args) =>
+                        {
+                            var g = args.Graphics;
+                            if (Bosses.Count > 0)
+                                g.DrawImage(boss.BossImg, Bosses.Last().Position);
+                            else
+                                g.DrawImage(boss.BossImg, boss.Position);
+                        };
+                    }
+                }
+            };
+            bossMove.Interval = 500;
+            bossMove.Tick += (sender, args) =>
+            {
+                if(boss.IsSpawned)
+                    Bosses.Last().Movement(rand.Next(-20, 20));
+            };
+            bossShoot.Interval = 1000;
+            bossShoot.Tick += (sender, args) =>
+            {
+                if (GameStarted && boss.IsSpawned)
+                {
+                    Bosses.Last().Shoot();
+                    foreach (var bull in Bosses.Last().Bullets)
+                    {
+                        bull.Shoot(bull.Position, Bullet.Directions.Down);
+                        Invalidate();
+                        Paint += (sender, args) =>
+                        {
+
+                            var g = args.Graphics;
+                            g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
+                            g.DrawImage(bull.EnemyBulletImg, bull.Position);
+                        };
+                        if (bull.IsInsideTarget(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position))
+                        {
+                            Lives--;
+                            LivesLabel.Text = "Жизни: " + Lives.ToString();
+                        }
+                        if (Lives <= 0)
+                        {
+                            GameOver.Text = "Игра окончена. Вы проиграли!";
+                            GameOver.Location = new Point(GameName.Left, GameName.Top);
+                            GameOver.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 16);
+                            GameStarted = false;
+                            Controls.Add(RestartGame);
+                            Controls.Add(GameOver);
+                            Controls.Add(CloseGame);
+                            ShootTimer.Stop();
+                            SpawnEnemy.Stop();
+                            enemyShot.Stop();
+                            enemyMove.Stop();
+                            checkEnemyCount.Stop();
+                            bossShoot.Stop();
+                            bossMove.Stop();
+                            bossNeeded.Stop();
+                        }
+                    }
+                }                                  
+            };
         }
+
         public void InitializeMenu()
         {
             StartGame.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 - ClientSize.Height / 8);
@@ -249,7 +365,7 @@ namespace _132134412312
             HardDiffculty.Text = "Сложность: Тяжелая";
             HardDiffculty.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 + ClientSize.Height / 6);
             HardDiffculty.Size = StartGame.Size;
-            GameName.Location = new Point(StartGame.Left - 10, StartGame.Top - 40);
+            GameName.Location = new Point(StartGame.Left - 10, StartGame.Top - 100);
             GameName.Size = new Size(ClientSize.Width / 4 + 40, ClientSize.Height / 16);
             GameName.Text = "Defeat the Aliens";
             GameName.TextAlign = ContentAlignment.TopCenter;
@@ -271,6 +387,7 @@ namespace _132134412312
             Controls.Add(StartGame);
             Controls.Add(CloseGame);            
         }
+
         public void ChangeSize()
         {           
             GameOver.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8,
@@ -296,6 +413,7 @@ namespace _132134412312
                 };
             }
         }
+
         public void InitializeGame()
         {
             Controls.Remove(StartGame);

@@ -7,7 +7,7 @@ namespace _132134412312
 {
 
 
-    public class Bullet : Form
+    public class Bullet
     {
         public enum Directions
         {
@@ -23,6 +23,7 @@ namespace _132134412312
         public Bitmap PlayerBulletImg = Resource1.Bullet;
         public Bitmap EnemyBulletImg = Resource1.Bullet_Enemy;
         public Point Position = new Point();
+        public Boolean IsActive = true;
         public void Shoot(Point startPos, Directions dir)
         {
             var direction = new Point();

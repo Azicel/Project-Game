@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace _132134412312
 {
-    public class Enemy :Form
+    public class Enemy
     {
         public Bitmap EnemyImg = Resource1.Enemy;
         public Point Position = new Point();

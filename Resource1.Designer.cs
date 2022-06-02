@@ -73,6 +73,16 @@ namespace _132134412312 {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Boss {
+            get {
+                object obj = ResourceManager.GetObject("Boss", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Bullet {
             get {
                 object obj = ResourceManager.GetObject("Bullet", resourceCulture);
