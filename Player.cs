@@ -12,7 +12,7 @@ namespace _132134412312
         public readonly Bitmap PlayerStandinOnPlace = Resource1.PlayerStands;
         public static System.Windows.Forms.Timer ShootTimer = new System.Windows.Forms.Timer();
         public List<Bullet> Bullets = new List<Bullet>();
-        public int MaxBullets = 6;
+        public int MaxBullets = 10;
         public void AdaptPosition(int x, int y)
         {
             Position = new Point(x / 2-PlayerStandinOnPlace.Width/2, y-PlayerStandinOnPlace.Height);

@@ -44,6 +44,9 @@ namespace _132134412312
             var bossMove = new System.Windows.Forms.Timer();
             InitializeComponent();
             InitializeMenu();
+            Controls.Add(GameName);
+            Controls.Add(StartGame);
+            Controls.Add(CloseGame);
             PlayerPlane.AdaptPosition(ClientSize.Width, ClientSize.Height);
             Score = 0;
             Lives = MaxLives;
@@ -109,7 +112,7 @@ namespace _132134412312
                 enemyMove.Start();
                 enemyShot.Start();
             };
-            ShootTimer.Interval = 500;
+            ShootTimer.Interval = 350;
             ShootTimer.Tick += (sender, args) =>
             {
                 if (GameStarted)
@@ -229,7 +232,7 @@ namespace _132134412312
                     enemy.Movement(rand.Next(-10, 10));
                 }
             };
-            enemyShot.Interval = 1000;
+            enemyShot.Interval = 500;
             enemyShot.Tick += (sender, args) =>
             {
                 if (GameStarted)
@@ -255,9 +258,6 @@ namespace _132134412312
                             }
                             if (Lives <= 0)
                             {
-                                GameOver.Text = "Игра окончена. Вы проиграли!";
-                                GameOver.Location = new Point(GameName.Left, GameName.Top);
-                                GameOver.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 16);
                                 GameStarted = false;
                                 Controls.Add(RestartGame);
                                 Controls.Add(GameOver);
@@ -279,9 +279,9 @@ namespace _132134412312
             {
                 if (GameStarted && !boss.IsSpawned)
                 {
-                    if (Score >= 0)
+                    if (Score >= 10)
                     {
-                        Bosses.Add(new Boss() { Position = new Point(rand.Next(256, ClientSize.Width - 256), 30) });
+                        Bosses.Add(new Boss() { Position = new Point(rand.Next(0, ClientSize.Width - 256), 30) });
                         SpawnEnemy.Stop();
                         checkEnemyCount.Stop();
                         bossShoot.Start();
@@ -306,7 +306,7 @@ namespace _132134412312
                 if(boss.IsSpawned)
                     Bosses.Last().Movement(rand.Next(-20, 20));
             };
-            bossShoot.Interval = 1000;
+            bossShoot.Interval = 500;
             bossShoot.Tick += (sender, args) =>
             {
                 if (GameStarted && boss.IsSpawned)
@@ -330,9 +330,6 @@ namespace _132134412312
                         }
                         if (Lives <= 0)
                         {
-                            GameOver.Text = "Игра окончена. Вы проиграли!";
-                            GameOver.Location = new Point(GameName.Left, GameName.Top);
-                            GameOver.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 16);
                             GameStarted = false;
                             Controls.Add(RestartGame);
                             Controls.Add(GameOver);
@@ -353,6 +350,36 @@ namespace _132134412312
 
         public void InitializeMenu()
         {
+            InitializeLabels();
+            InitializeButtons();
+            FormWidth = ClientSize.Width;
+            FormHeight = ClientSize.Height;        
+        }
+
+        public void InitializeLabels()
+        {
+            GameName.Location = new Point(StartGame.Left - 10, StartGame.Top - 100);
+            GameName.Size = new Size(ClientSize.Width / 4 + 40, ClientSize.Height / 16);
+            GameName.Text = "Defeat the Aliens";
+            GameName.TextAlign = ContentAlignment.TopCenter;
+            ScoreLabel.Location = new Point(0, 0);
+            ScoreLabel.Size = new Size(100, 20);
+            ScoreLabel.Text = "Очки: " + Score.ToString();
+            LivesLabel.Location = new Point(ClientSize.Width - 100, 0);
+            LivesLabel.Size = new Size(100, 20);
+            LivesLabel.Text = "Жизни: " + Lives.ToString();
+            GameStatus.Text = "Игра приостановлена";
+            GameStatus.Location = new Point(GameName.Location.X, GameName.Location.Y);
+            GameStatus.Size = GameName.Size;
+            GameStatus.TextAlign = ContentAlignment.TopCenter;
+            GameOver.Text = "Игра окончена. Вы проиграли!";
+            GameOver.Location = new Point(GameName.Left, GameName.Top);
+            GameOver.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 8);
+            GameOver.TextAlign = ContentAlignment.TopCenter;
+        }
+        
+        public void InitializeButtons()
+        {
             StartGame.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 - ClientSize.Height / 8);
             StartGame.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 8);
             StartGame.Text = "Начать игру";
@@ -365,45 +392,24 @@ namespace _132134412312
             HardDiffculty.Text = "Сложность: Тяжелая";
             HardDiffculty.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 + ClientSize.Height / 6);
             HardDiffculty.Size = StartGame.Size;
-            GameName.Location = new Point(StartGame.Left - 10, StartGame.Top - 100);
-            GameName.Size = new Size(ClientSize.Width / 4 + 40, ClientSize.Height / 16);
-            GameName.Text = "Defeat the Aliens";
-            GameName.TextAlign = ContentAlignment.TopCenter;
             CloseGame.Location = new Point(StartGame.Left, StartGame.Bottom + 10);
             CloseGame.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 8);
             CloseGame.Text = "Выйти из игры";
-            ScoreLabel.Location = new Point(0, 0);
-            ScoreLabel.Size = new Size(100, 20);
-            ScoreLabel.Text = "Очки: " + Score.ToString();
-            LivesLabel.Location = new Point(ClientSize.Width - 100, 0);
-            LivesLabel.Size = new Size(100, 20);
-            LivesLabel.Text = "Жизни: " + Lives.ToString();
             RestartGame.Text = "Начать занового?";
             RestartGame.Location = StartGame.Location;
-            RestartGame.Size = RestartGame.Size;
-            FormWidth = ClientSize.Width;
-            FormHeight = ClientSize.Height;
-            Controls.Add(GameName);
-            Controls.Add(StartGame);
-            Controls.Add(CloseGame);            
+            RestartGame.Size = StartGame.Size;
+            PauseGame.Text = "Продолжить";
+            PauseGame.Location = StartGame.Location;
+            PauseGame.Size = StartGame.Size;
         }
 
         public void ChangeSize()
-        {           
-            GameOver.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8,
-                ClientSize.Height / 2 - ClientSize.Height / 8);
-            GameOver.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 16);
-            StartGame.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 - ClientSize.Height / 8);
-            StartGame.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 8);
-            CloseGame.Location = new Point(StartGame.Left, StartGame.Bottom + 10);
-            CloseGame.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 8);
-            GameName.Location = new Point(StartGame.Left - 10, StartGame.Top - 40);
-            GameName.Size = new Size(ClientSize.Width / 4 + 20, ClientSize.Height / 16);
-            LivesLabel.Location = new Point(ClientSize.Width - 100, 0);
+        {
+            InitializeMenu();
             FormWidth = ClientSize.Width;
             FormHeight = ClientSize.Height;
             PlayerPlane.AdaptPosition(ClientSize.Width, ClientSize.Height);
-            if (!Controls.Contains(StartGame))
+            if (GameStarted)
             {
                 Invalidate();
                 Paint += (sender, args) =>
@@ -483,13 +489,7 @@ namespace _132134412312
         {
             if(e.KeyChar == (char)Keys.Escape)
             {
-                GameStarted = false;                
-                PauseGame.Text = "Продолжить";
-                PauseGame.Location = StartGame.Location;
-                PauseGame.Size = StartGame.Size;
-                GameStatus.Text = "Игра приостановлена";
-                GameStatus.Location = new Point(GameName.Location.X, GameName.Location.Y);
-                GameStatus.Size = GameName.Size;
+                GameStarted = false;                                
                 Controls.Add(PauseGame);
                 Controls.Add(CloseGame);
             }

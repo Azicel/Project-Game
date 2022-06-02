@@ -23,7 +23,7 @@ namespace _132134412312
         }
         public List<Bullet> Shoot()
         {
-            if (Bullets.Count < 16)
+            if (Bullets.Count < 32)
             {
                 Bullets.Add(new Bullet()
                 { Position = new Point(Position.X, Position.Y + BossImg.Height) });
