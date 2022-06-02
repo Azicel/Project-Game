@@ -19,6 +19,10 @@ namespace _132134412312
         }
         public void Movement(int dx)
         {
+            if (Position.X + dx <= 0)
+                dx = dx * -1;
+            if (Position.X + dx >= Form1.FormWidth - BossImg.Width) 
+                dx = dx * -1;
             Position.Offset(dx, 0);
         }
         public List<Bullet> Shoot()
