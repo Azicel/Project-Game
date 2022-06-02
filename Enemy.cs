@@ -19,9 +19,9 @@ namespace _132134412312
         {          
             Position.Offset(dx, 0);
         }
-        public List<Bullet> Shoot(int count)
+        public List<Bullet> Shoot()
         {
-            if (Bullets.Count < 4)
+            if (Bullets.Count < 5)
             {
                 Bullets.Add(new Bullet()
                 { Position = new Point(Position.X + EnemyImg.Width / 2, Position.Y+EnemyImg.Height) });

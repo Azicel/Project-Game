@@ -9,13 +9,13 @@ namespace _132134412312
     public class Player
     {
         public Point Position = new Point();
-        public readonly Bitmap PlayerStandinOnPlace = Resource1.PlayerStands;
+        public readonly Bitmap PlayerImg = Resource1.PlayerStands;
         public static System.Windows.Forms.Timer ShootTimer = new System.Windows.Forms.Timer();
         public List<Bullet> Bullets = new List<Bullet>();
         public int MaxBullets = 10;
         public void AdaptPosition(int x, int y)
         {
-            Position = new Point(x / 2-PlayerStandinOnPlace.Width/2, y-PlayerStandinOnPlace.Height);
+            Position = new Point(x / 2-PlayerImg.Width/2, y-PlayerImg.Height);
         }
         public void Movement(int mouse)
         {
@@ -26,7 +26,7 @@ namespace _132134412312
             if (Bullets.Count < MaxBullets)
             {
                 Bullets.Add(new Bullet()
-                { Position = new Point(Position.X + PlayerStandinOnPlace.Width / 2, Position.Y) });
+                { Position = new Point(Position.X + PlayerImg.Width / 2, Position.Y) });
             }            
             Bullets.RemoveAll(bullet => bullet.Position.Y < 0);
             return Bullets;

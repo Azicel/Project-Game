@@ -29,19 +29,19 @@ namespace _132134412312
         public static int FormWidth;
         public static int FormHeight;
 
-        public static System.Windows.Forms.Timer ShootTimer = new System.Windows.Forms.Timer();
-        public static System.Windows.Forms.Timer SpawnEnemy = new System.Windows.Forms.Timer();
+        public static System.Windows.Forms.Timer ShootTimer = new System.Windows.Forms.Timer() { Interval = 350};
+        public static System.Windows.Forms.Timer SpawnEnemy = new System.Windows.Forms.Timer() { Interval = 3000 };
+        public static System.Windows.Forms.Timer EnemyShot = new System.Windows.Forms.Timer() { Interval = 500 };
+        public static System.Windows.Forms.Timer EnemyMove = new System.Windows.Forms.Timer() { Interval = 250 };
+        public static System.Windows.Forms.Timer CheckEnemyCount = new System.Windows.Forms.Timer() { Interval = 10 };
+        public static System.Windows.Forms.Timer BossNeeded = new System.Windows.Forms.Timer() { Interval = 30000 };
+        public static System.Windows.Forms.Timer BossShoot = new System.Windows.Forms.Timer() { Interval = 500 };
+        public static System.Windows.Forms.Timer BossMove = new System.Windows.Forms.Timer() { Interval = 500 };
         public Form1()
         {
             var rand = new Random();
             var enemy = new Enemy();
             var boss = new Boss() { Position = new Point(-256,256)};
-            var checkEnemyCount = new System.Windows.Forms.Timer();
-            var enemyMove = new System.Windows.Forms.Timer();
-            var enemyShot = new System.Windows.Forms.Timer();
-            var bossNeeded = new System.Windows.Forms.Timer() { Interval = 25000 };
-            var bossShoot = new System.Windows.Forms.Timer();
-            var bossMove = new System.Windows.Forms.Timer();
             InitializeComponent();
             InitializeMenu();
             Controls.Add(GameName);
@@ -67,37 +67,22 @@ namespace _132134412312
                 MaxLives = 7;
                 Lives = MaxLives;
                 InitializeGame();
-                checkEnemyCount.Start();
-                enemyMove.Start();
-                enemyShot.Start();
-                bossNeeded.Start();
             };
             MediumDiffculty.Click += (sender, args) =>
             {
                 MaxLives = 5;
                 Lives = MaxLives;
                 InitializeGame();
-                checkEnemyCount.Start();
-                enemyMove.Start();
-                enemyShot.Start();
-                bossNeeded.Start();
             };
             HardDiffculty.Click += (sender, args) =>
             {
                 MaxLives = 3;
                 Lives = MaxLives;
                 InitializeGame();
-                checkEnemyCount.Start();
-                enemyMove.Start();
-                enemyShot.Start();
-                bossNeeded.Start();
             };
             PauseGame.Click += (sender, args) =>
             {
-                InitializeGame();
-                checkEnemyCount.Start();
-                enemyMove.Start();
-                enemyShot.Start();
+                InitializeGame();                
             };
             CloseGame.Click += (sender, args) =>
             {
@@ -108,93 +93,14 @@ namespace _132134412312
                 Score = 0;
                 Lives = MaxLives;
                 Restart();
-                checkEnemyCount.Start();
-                enemyMove.Start();
-                enemyShot.Start();
             };
-            ShootTimer.Interval = 350;
             ShootTimer.Tick += (sender, args) =>
             {
                 if (GameStarted)
                 {
-                    PlayerPlane.Shoot();
-                    foreach (var bull in PlayerPlane.Bullets)
-                    {
-                        bull.Shoot(bull.Position, Bullet.Directions.Up);
-                        Invalidate();
-                        Paint += (sender, args) =>
-                        {
-
-                            var g = args.Graphics;
-                            g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
-                            g.DrawImage(bull.PlayerBulletImg, bull.Position);
-                        };
-                        if (bull.IsActive)
-                        {
-                            for (int i = 0; i < Enemies.Count; i++)
-                            {
-                                if (bull.IsInsideTarget(enemy.EnemyImg, Enemies[i].Position))
-                                {
-                                    var enemyShot = Enemies[i];
-                                    Invalidate();
-                                    Paint += (sender, args) =>
-                                    {
-                                        var g = args.Graphics;
-                                        g.DrawImage(BackGround, enemyShot.Position.X, enemyShot.Position.Y);
-                                        foreach (var bull in enemyShot.Bullets)
-                                        {
-                                            g.DrawImage(BackGround,
-                                                new Rectangle(bull.Position.X, bull.Position.Y,
-                                                bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
-                                        }
-                                    };
-                                    bull.IsActive = false;
-                                    Enemies.RemoveAt(i);
-                                    Score++;
-                                    ScoreLabel.Text = "Очки: " + Score.ToString();
-                                    if (Score % 5 == 0 && Score != 0)
-                                        EnemyCount++;
-                                    break;
-                                }
-                            }
-                            if (boss.IsSpawned)
-                            {
-                                if (bull.IsInsideTarget(boss.BossImg, Bosses.Last().Position))
-                                {
-                                    Bosses.Last().Lives--;
-                                    bull.IsActive = false;
-                                    if (Bosses.Last().Lives <= 0)
-                                    {
-                                        var bossData = Bosses.Last();
-                                        Invalidate();
-                                        Paint += (sender, args) =>
-                                        {
-                                            var g = args.Graphics;
-                                            foreach (var bull in bossData.Bullets)
-                                            {
-                                                g.DrawImage(BackGround,
-                                                    new Rectangle(bull.Position.X, bull.Position.Y,
-                                                    bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
-                                            }
-                                        };
-                                        Bosses.Clear();
-                                        boss.IsSpawned = false;
-                                        Score += 10;
-                                        Lives++;
-                                        LivesLabel.Text = "Жизни: " + Lives.ToString();
-                                        ScoreLabel.Text = "Очки: " + Score.ToString();
-                                        EnemyCount += 2;
-                                        checkEnemyCount.Start();
-                                        enemyMove.Start();
-                                        enemyShot.Start();
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ShootBullet(PlayerPlane, boss, enemy);
                 }
             };
-            SpawnEnemy.Interval = 3000;
             SpawnEnemy.Tick += (sender, args) =>
             {
                 if (GameStarted)
@@ -203,8 +109,6 @@ namespace _132134412312
                     {
                         Enemies.Add(new Enemy() { Position = new Point(rand.Next(32, ClientSize.Width - 32), 30) });
                     }
-                    else
-                        SpawnEnemy.Stop();
                     foreach (var enemy in Enemies)
                     {
                         Invalidate();
@@ -216,78 +120,41 @@ namespace _132134412312
                     }
                 }
             };
-            checkEnemyCount.Interval = 10;
-            checkEnemyCount.Tick += (sender, args) =>
+            CheckEnemyCount.Tick += (sender, args) =>
             {
                 if (Enemies.Count < EnemyCount)
                 {
                     SpawnEnemy.Start();
                 }
             };
-            enemyMove.Interval = 250;
-            enemyMove.Tick += (sender, args) =>
+            EnemyMove.Tick += (sender, args) =>
             {
                 foreach (var enemy in Enemies)
                 {
                     enemy.Movement(rand.Next(-10, 10));
                 }
             };
-            enemyShot.Interval = 500;
-            enemyShot.Tick += (sender, args) =>
+            EnemyShot.Tick += (sender, args) =>
             {
                 if (GameStarted)
                 {
                     for (int i = 0; i < Enemies.Count; i++)
                     {
-                        Enemies[i].Shoot(EnemyCount);
-                        foreach (var bull in Enemies[i].Bullets)
-                        {
-                            bull.Shoot(bull.Position, Bullet.Directions.Down);
-                            Invalidate();
-                            Paint += (sender, args) =>
-                            {
-
-                                var g = args.Graphics;
-                                g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
-                                g.DrawImage(bull.EnemyBulletImg, bull.Position);
-                            };
-                            if (bull.IsInsideTarget(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position))
-                            {
-                                Lives--;
-                                LivesLabel.Text = "Жизни: " + Lives.ToString();
-                            }
-                            if (Lives <= 0)
-                            {
-                                GameStarted = false;
-                                Controls.Add(RestartGame);
-                                Controls.Add(GameOver);
-                                Controls.Add(CloseGame);
-                                ShootTimer.Stop();
-                                SpawnEnemy.Stop();
-                                enemyShot.Stop();
-                                enemyMove.Stop();
-                                checkEnemyCount.Stop();
-                                bossShoot.Stop();
-                                bossMove.Stop();
-                                bossNeeded.Stop();
-                            }
-                        }
+                        ShootBullet(Enemies[i]);
                     }
                 }
             };
-            bossNeeded.Tick += (sender, args) =>
+            BossNeeded.Tick += (sender, args) =>
             {
                 if (GameStarted && !boss.IsSpawned)
                 {
                     if (Score >= 10)
                     {
                         Bosses.Add(new Boss() { Position = new Point(rand.Next(0, ClientSize.Width - 256), 30) });
-                        SpawnEnemy.Stop();
-                        checkEnemyCount.Stop();
-                        bossShoot.Start();
-                        bossMove.Start();
+                        BossShoot.Start();
+                        BossMove.Start();
                         boss.IsSpawned = true;
-                        bossNeeded.Interval = 30000;
+                        BossNeeded.Interval = 30000;
                         Invalidate();
                         Paint += (sender, args) =>
                         {
@@ -300,50 +167,16 @@ namespace _132134412312
                     }
                 }
             };
-            bossMove.Interval = 500;
-            bossMove.Tick += (sender, args) =>
+            BossMove.Tick += (sender, args) =>
             {
                 if(boss.IsSpawned)
                     Bosses.Last().Movement(rand.Next(-20, 20));
             };
-            bossShoot.Interval = 500;
-            bossShoot.Tick += (sender, args) =>
+            BossShoot.Tick += (sender, args) =>
             {
                 if (GameStarted && boss.IsSpawned)
                 {
-                    Bosses.Last().Shoot();
-                    foreach (var bull in Bosses.Last().Bullets)
-                    {
-                        bull.Shoot(bull.Position, Bullet.Directions.Down);
-                        Invalidate();
-                        Paint += (sender, args) =>
-                        {
-
-                            var g = args.Graphics;
-                            g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
-                            g.DrawImage(bull.EnemyBulletImg, bull.Position);
-                        };
-                        if (bull.IsInsideTarget(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position))
-                        {
-                            Lives--;
-                            LivesLabel.Text = "Жизни: " + Lives.ToString();
-                        }
-                        if (Lives <= 0)
-                        {
-                            GameStarted = false;
-                            Controls.Add(RestartGame);
-                            Controls.Add(GameOver);
-                            Controls.Add(CloseGame);
-                            ShootTimer.Stop();
-                            SpawnEnemy.Stop();
-                            enemyShot.Stop();
-                            enemyMove.Stop();
-                            checkEnemyCount.Stop();
-                            bossShoot.Stop();
-                            bossMove.Stop();
-                            bossNeeded.Stop();
-                        }
-                    }
+                    ShootBullet(Bosses.Last());
                 }                                  
             };
         }
@@ -395,7 +228,7 @@ namespace _132134412312
             CloseGame.Location = new Point(StartGame.Left, StartGame.Bottom + 10);
             CloseGame.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 8);
             CloseGame.Text = "Выйти из игры";
-            RestartGame.Text = "Начать занового?";
+            RestartGame.Text = "Начать заново?";
             RestartGame.Location = StartGame.Location;
             RestartGame.Size = StartGame.Size;
             PauseGame.Text = "Продолжить";
@@ -415,7 +248,7 @@ namespace _132134412312
                 Paint += (sender, args) =>
                 {
                     var g = args.Graphics;
-                    g.DrawImage(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position);
+                    g.DrawImage(PlayerPlane.PlayerImg, PlayerPlane.Position);
                 };
             }
         }
@@ -438,10 +271,14 @@ namespace _132134412312
             Paint += (sender, args) =>
             {
                 var g = args.Graphics;
-                g.DrawImage(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position);
+                g.DrawImage(PlayerPlane.PlayerImg, PlayerPlane.Position);
             };
             ShootTimer.Start();
             SpawnEnemy.Start();
+            CheckEnemyCount.Start();
+            EnemyMove.Start();
+            EnemyShot.Start();
+            BossNeeded.Start();
             GameStarted = true;
         }
         public void Restart()
@@ -454,7 +291,7 @@ namespace _132134412312
             {
                 var g = args.Graphics;
                 g.Clear(BackColor);
-                g.DrawImage(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position);
+                g.DrawImage(PlayerPlane.PlayerImg, PlayerPlane.Position);
             };
         }
 
@@ -477,9 +314,9 @@ namespace _132134412312
         {
             if (GameStarted)
             {
-                if (e.X > PlayerPlane.PlayerStandinOnPlace.Width / 2 && e.X < ClientSize.Width - PlayerPlane.PlayerStandinOnPlace.Width / 2)
+                if (e.X > PlayerPlane.PlayerImg.Width / 2 && e.X < ClientSize.Width - PlayerPlane.PlayerImg.Width / 2)
                 {
-                    PlayerPlane.Movement(e.X - PlayerPlane.PlayerStandinOnPlace.Width / 2);
+                    PlayerPlane.Movement(e.X - PlayerPlane.PlayerImg.Width / 2);
                     Invalidate();
                 }
             }
@@ -492,6 +329,148 @@ namespace _132134412312
                 GameStarted = false;                                
                 Controls.Add(PauseGame);
                 Controls.Add(CloseGame);
+            }
+        }
+
+        private void CheckBullet(Bullet bull, Bitmap bitmap, Enemy enemy)
+        {
+            if (bull.IsInsideTarget(bitmap, enemy.Position))
+            {
+                Invalidate();
+                Paint += (sender, args) =>
+                {
+                    var g = args.Graphics;
+                    g.DrawImage(BackGround, enemy.Position.X, enemy.Position.Y);
+                    foreach (var bull in enemy.Bullets)
+                    {
+                        g.DrawImage(BackGround,
+                            new Rectangle(bull.Position.X, bull.Position.Y,
+                            bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
+                    }
+                };
+                bull.IsActive = false;
+                Enemies.Remove(enemy);
+                Score++;
+                ScoreLabel.Text = "Очки: " + Score.ToString();
+                if (Score % 5 == 0 && Score != 0)
+                    EnemyCount++;
+            }
+        }
+        private void CheckBullet(Bullet bull, Bitmap bitmap, ref Boss boss)
+        {
+            if (bull.IsInsideTarget(boss.BossImg, Bosses.Last().Position))
+            {
+                Bosses.Last().Lives--;
+                bull.IsActive = false;
+                if (Bosses.Last().Lives <= 0)
+                {
+                    var bossData = Bosses.Last();
+                    Invalidate();
+                    Paint += (sender, args) =>
+                    {
+                        var g = args.Graphics;
+                        foreach (var bull in bossData.Bullets)
+                        {
+                            g.DrawImage(BackGround,
+                                new Rectangle(bull.Position.X, bull.Position.Y,
+                                bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
+                        }
+                    };
+                    Bosses.Clear();
+                    boss.IsSpawned = false;
+                    Score += 10;
+                    Lives++;
+                    LivesLabel.Text = "Жизни: " + Lives.ToString();
+                    ScoreLabel.Text = "Очки: " + Score.ToString();
+                    EnemyCount += 2;
+                    CheckEnemyCount.Start();
+                    EnemyMove.Start();
+                    EnemyShot.Start();
+                }
+            }
+        }
+        private void CheckBullet(Bullet bull, Bitmap bitmap, Player player)
+        {
+            if (bull.IsInsideTarget(player.PlayerImg, player.Position))
+            {
+                Lives--;
+                LivesLabel.Text = "Жизни: " + Lives.ToString();
+            }
+            if (Lives <= 0)
+            {
+                GameStarted = false;
+                Controls.Add(RestartGame);
+                Controls.Add(GameOver);
+                Controls.Add(CloseGame);
+                ShootTimer.Stop();
+                SpawnEnemy.Stop();
+                EnemyShot.Stop();
+                EnemyMove.Stop();
+                CheckEnemyCount.Stop();
+                BossShoot.Stop();
+                BossMove.Stop();
+                BossNeeded.Stop();
+            }
+        }
+        private void ShootBullet(Enemy enemy)
+        {
+            enemy.Shoot();
+            foreach (var bull in enemy.Bullets)
+            {
+                bull.Shoot(bull.Position, Bullet.Directions.Down);
+                Invalidate();
+                Paint += (sender, args) =>
+                {
+
+                    var g = args.Graphics;
+                    g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
+                    g.DrawImage(bull.EnemyBulletImg, bull.Position);
+                };
+                CheckBullet(bull, PlayerPlane.PlayerImg, PlayerPlane);
+            }
+        }
+        private void ShootBullet(Player player, Boss boss, Enemy enemy)
+        {
+            player.Shoot();
+            foreach (var bull in player.Bullets)
+            {
+                bull.Shoot(bull.Position, Bullet.Directions.Up);
+                Invalidate();
+                Paint += (sender, args) =>
+                {
+
+                    var g = args.Graphics;
+                    g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
+                    g.DrawImage(bull.PlayerBulletImg, bull.Position);
+                };
+                if (bull.IsActive)
+                {
+                    for (int i = 0; i < Enemies.Count; i++)
+                    {
+                        CheckBullet(bull, enemy.EnemyImg, Enemies[i]);
+                    }
+                    if (boss.IsSpawned)
+                    {
+                        CheckBullet(bull, boss.BossImg, ref boss);
+                    }
+                }
+            }
+        }
+        private void ShootBullet(Boss boss)
+        {
+            boss.Shoot();
+            foreach (var bull in boss.Bullets)
+            {
+                bull.Shoot(bull.Position, Bullet.Directions.Down);
+                Invalidate();
+                Paint += (sender, args) =>
+                {
+
+                    var g = args.Graphics;
+                    g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
+                    g.DrawImage(bull.EnemyBulletImg, bull.Position);
+                };
+                CheckBullet(bull, PlayerPlane.PlayerImg, PlayerPlane);
             }
         }
     }
