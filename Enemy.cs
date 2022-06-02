@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace _132134412312
 {
-    internal class Enemy : Form
+    public class Enemy :Form
     {
         public Bitmap EnemyImg = Resource1.Enemy;
         public Point Position = new Point();
+        public List<Bullet> Bullets = new List<Bullet>();
         public Enemy()
         {
             EnemyImg.RotateFlip(RotateFlipType.Rotate180FlipNone);
@@ -18,15 +19,15 @@ namespace _132134412312
         {          
             Position.Offset(dx, 0);
         }
-        public List<Bullet> Shoot(List<Bullet> bullets, int count)
+        public List<Bullet> Shoot(int count)
         {
-            if (bullets.Count < count*3)
+            if (Bullets.Count < 4)
             {
-                bullets.Add(new Bullet()
+                Bullets.Add(new Bullet()
                 { Position = new Point(Position.X + EnemyImg.Width / 2, Position.Y+EnemyImg.Height) });
             }
-            bullets.RemoveAll(bullet => bullet.Position.Y > Form1.FormHeight);
-            return bullets;
+            Bullets.RemoveAll(bullet => bullet.Position.Y > Form1.FormHeight);
+            return Bullets;
         }
 
     }

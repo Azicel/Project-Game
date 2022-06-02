@@ -11,6 +11,7 @@ namespace _132134412312
         public Point Position = new Point();
         public readonly Bitmap PlayerStandinOnPlace = Resource1.PlayerStands;
         public static System.Windows.Forms.Timer ShootTimer = new System.Windows.Forms.Timer();
+        public List<Bullet> Bullets = new List<Bullet>();
         public void AdaptPosition(int x, int y)
         {
             Position = new Point(x / 2-PlayerStandinOnPlace.Width/2, y-PlayerStandinOnPlace.Height);
@@ -19,15 +20,15 @@ namespace _132134412312
         {
             Position.X = mouse;
         }
-        public List<Bullet> Shoot(List<Bullet> bullets)
+        public List<Bullet> Shoot()
         {
-            if (bullets.Count < ClientSize.Height / 32)
+            if (Bullets.Count < ClientSize.Height / 32)
             {
-                bullets.Add(new Bullet()
+                Bullets.Add(new Bullet()
                 { Position = new Point(Position.X + PlayerStandinOnPlace.Width / 2, Position.Y) });
             }            
-            bullets.RemoveAll(bullet => bullet.Position.Y < 0);
-            return bullets;
+            Bullets.RemoveAll(bullet => bullet.Position.Y < 0);
+            return Bullets;
         }
        
     }

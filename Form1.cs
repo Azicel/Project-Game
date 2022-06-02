@@ -2,65 +2,114 @@ using System.Drawing;
 
 namespace _132134412312
 {
-    partial class Form1 : Form
+    public partial class Form1 : Form
     {
-        public static Label GameName = new Label();
-        public static Label GameOver = new Label();
-        public static Label ScoreLabel = new Label();
-        public static Label LivesLabel = new Label();
-        public static int Score = 0;
-        public static int EnemyCount = 4;
-        public static int Lives = 5;
-        public static Button CloseGame = new Button();
-        public static Button StartGame = new Button();
-        public static Player PlayerPlane = new Player();
-        public static Boolean IsGameEndedOrStopped = false;
+        public Label GameName = new Label();
+        public Label GameStatus = new Label();
+        public Label GameOver = new Label();
+        public Label ScoreLabel = new Label();
+        public Label LivesLabel = new Label();
+        public Button CloseGame = new Button();
+        public Button StartGame = new Button();
+        public Button PauseGame = new Button();
+        public Button EasyDiffculty = new Button();
+        public Button MediumDiffculty = new Button();
+        public Button HardDiffculty = new Button();
+        public Button RestartGame = new Button();
+        public Bitmap BackGround = Resource1.BackGround;
+
+        public int Score = 0;
+        public int EnemyCount = 4;
+        public int MaxLives = 5;
+        public int Lives = 0;
+        public Player PlayerPlane = new Player();
+        public List<Enemy> Enemies = new List<Enemy>();
+        public Boolean GameStarted = false;
         public static int FormWidth;
         public static int FormHeight;
-        public static Bitmap BackGround = Resource1.BackGround;
 
         public static System.Windows.Forms.Timer ShootTimer = new System.Windows.Forms.Timer();
         public static System.Windows.Forms.Timer SpawnEnemy = new System.Windows.Forms.Timer();
         public Form1()
         {
             var rand = new Random();
-            var enemys = new List<Enemy>();
             var enemy = new Enemy();
-            var playerBullets = new List<Bullet>();
-            var gameStarted = false;
+            var checkEnemyCount = new System.Windows.Forms.Timer();
+            var enemyMove = new System.Windows.Forms.Timer();
+            var enemyShot = new System.Windows.Forms.Timer();
             InitializeComponent();
             InitializeMenu();
             PlayerPlane.AdaptPosition(ClientSize.Width, ClientSize.Height);
+            Score = 0;
+            Lives = MaxLives;
             SizeChanged += (sender, args) =>
             {
                 ChangeSize();
             };
             StartGame.Click += (sender, args) =>
             {
-                Controls.Remove(StartGame);
+                Controls.Add(EasyDiffculty);
+                Controls.Add(MediumDiffculty);
+                Controls.Add(HardDiffculty);
                 Controls.Remove(CloseGame);
-                Controls.Remove(GameName);
-                Controls.Add(ScoreLabel);
-                Controls.Add(LivesLabel);
-                Paint += (sender, args) =>
-                {
-                    var g = args.Graphics;
-                    g.DrawImage(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position);
-                };
-                gameStarted = true;
+                Controls.Remove(StartGame);
+            };
+            EasyDiffculty.Click += (sender, args) =>
+            {
+                MaxLives = 7;
+                Lives = MaxLives;
+                InitializeGame();
+                checkEnemyCount.Start();
+                enemyMove.Start();
+                enemyShot.Start();              
+            };
+            MediumDiffculty.Click += (sender, args) =>
+            {
+                MaxLives = 5;
+                Lives = MaxLives;
+                InitializeGame();
+                checkEnemyCount.Start();
+                enemyMove.Start();
+                enemyShot.Start();
+            };
+            HardDiffculty.Click += (sender, args) =>
+            {
+                MaxLives = 3;
+                Lives = MaxLives;
+                InitializeGame();
+                checkEnemyCount.Start();
+                enemyMove.Start();
+                enemyShot.Start();
+            };
+            PauseGame.Click += (sender, args) =>
+            {
+                InitializeGame();
+                checkEnemyCount.Start();
+                enemyMove.Start();
+                enemyShot.Start();
             };
             CloseGame.Click += (sender, args) =>
             {
                 Close();
-            };           
+            };
+            RestartGame.Click += (sender, args) =>
+            {
+                Score = 0;
+                Lives = MaxLives;
+                Restart();
+                checkEnemyCount.Start();
+                enemyMove.Start();
+                enemyShot.Start();
+            };
             ShootTimer.Interval = 500;
-            ShootTimer.Start();
             ShootTimer.Tick += (sender, args) =>
             {
-                if (gameStarted)
+                if (GameStarted)
                 {
-                    PlayerPlane.Shoot(playerBullets);
-                    foreach (var bull in playerBullets)
+                    PlayerPlane.Shoot();
+                    var bulletHit = new Bullet();
+                    var isHit = false;
+                    foreach (var bull in PlayerPlane.Bullets)
                     {
                         bull.Shoot(bull.Position, Bullet.Directions.Up);
                         Invalidate();
@@ -71,41 +120,51 @@ namespace _132134412312
                             g.Clip = new Region(new Rectangle(0, 30, ClientSize.Width, ClientSize.Height - 10));
                             g.DrawImage(bull.PlayerBulletImg, bull.Position);
                         };
-                        for (int i = 0; i < enemys.Count; i++)
+                        for (int i = 0; i < Enemies.Count; i++)
                         {
-                            if (bull.IsInsideTarget(enemy.EnemyImg, enemys[i].Position))
+                            if (bull.IsInsideTarget(enemy.EnemyImg, Enemies[i].Position))
                             {
-                                var enemyShotX = enemys[i].Position.X;
-                                var enemyShotY = enemys[i].Position.Y;
+                                var enemyShot = Enemies[i];
                                 Invalidate();
                                 Paint += (sender, args) =>
                                 {
                                     var g = args.Graphics;
-                                    g.DrawImage(BackGround, enemyShotX, enemyShotY);
+                                    g.DrawImage(BackGround, enemyShot.Position.X, enemyShot.Position.Y);
+                                    foreach (var bull in enemyShot.Bullets)
+                                    {
+                                        g.DrawImage(BackGround,
+                                            new Rectangle(bull.Position.X, bull.Position.Y,
+                                            bull.EnemyBulletImg.Width, bull.EnemyBulletImg.Height));
+                                    }
                                 };
-                                enemys.RemoveAt(i);
+                                bulletHit = bull;
+                                isHit = true;
+                                Enemies.RemoveAt(i);
                                 Score++;
                                 ScoreLabel.Text = "Очки: " + Score.ToString();
                                 if (Score % 5 == 0 && Score != 0)
                                     EnemyCount++;
+                                break;
                             }
                         }
                     }
+                    if (isHit)
+                        PlayerPlane.Bullets.Remove(bulletHit);
+                    isHit = false;
                 }
-            };          
+            };
             SpawnEnemy.Interval = 3000;
-            SpawnEnemy.Start();
             SpawnEnemy.Tick += (sender, args) =>
             {
-                if (gameStarted)
+                if (GameStarted)
                 {
-                    if (enemys.Count < EnemyCount)
+                    if (Enemies.Count < EnemyCount)
                     {
-                        enemys.Add(new Enemy() { Position = new Point(rand.Next(32, ClientSize.Width - 32), 30) });
+                        Enemies.Add(new Enemy() { Position = new Point(rand.Next(32, ClientSize.Width - 32), 30) });
                     }
                     else
                         SpawnEnemy.Stop();
-                    foreach (var enemy in enemys)
+                    foreach (var enemy in Enemies)
                     {
                         Invalidate();
                         Paint += (sender, args) =>
@@ -116,38 +175,31 @@ namespace _132134412312
                     }
                 }
             };
-            var checkEnemyCount = new System.Windows.Forms.Timer();
             checkEnemyCount.Interval = 10;
-            checkEnemyCount.Start();
             checkEnemyCount.Tick += (sender, args) =>
             {
-                if (enemys.Count < EnemyCount)
+                if (Enemies.Count < EnemyCount)
                 {
                     SpawnEnemy.Start();
                 }
             };
-            var enemyMove = new System.Windows.Forms.Timer();
             enemyMove.Interval = 250;
-            enemyMove.Start();
             enemyMove.Tick += (sender, args) =>
             {
-                foreach(var enemy in enemys)
+                foreach (var enemy in Enemies)
                 {
                     enemy.Movement(rand.Next(-10, 10));
                 }
             };
-            var enemyShot = new System.Windows.Forms.Timer();
             enemyShot.Interval = 1000;
-            enemyShot.Start();
-            var enemyBullets = new List<Bullet>();
             enemyShot.Tick += (sender, args) =>
             {
-                if (gameStarted)
+                if (GameStarted)
                 {
-                    for(int i=0;i<enemys.Count;i++)
+                    for (int i = 0; i < Enemies.Count; i++)
                     {
-                        enemys[i].Shoot(enemyBullets,EnemyCount);
-                        foreach (var bull in enemyBullets)
+                        Enemies[i].Shoot(EnemyCount);
+                        foreach (var bull in Enemies[i].Bullets)
                         {
                             bull.Shoot(bull.Position, Bullet.Directions.Down);
                             Invalidate();
@@ -159,17 +211,17 @@ namespace _132134412312
                                 g.DrawImage(bull.EnemyBulletImg, bull.Position);
                             };
                             if (bull.IsInsideTarget(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position))
-                            {                               
+                            {
                                 Lives--;
                                 LivesLabel.Text = "Жизни: " + Lives.ToString();
                             }
-                            if(Lives<=0)
+                            if (Lives <= 0)
                             {
                                 GameOver.Text = "Игра окончена. Вы проиграли!";
-                                GameOver.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8,
-                                    ClientSize.Height / 2 - ClientSize.Height / 8);
+                                GameOver.Location = new Point(GameName.Left, GameName.Top);
                                 GameOver.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 16);
-                                IsGameEndedOrStopped = true;
+                                GameStarted = false;
+                                Controls.Add(RestartGame);
                                 Controls.Add(GameOver);
                                 Controls.Add(CloseGame);
                                 ShootTimer.Stop();
@@ -188,6 +240,15 @@ namespace _132134412312
             StartGame.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 - ClientSize.Height / 8);
             StartGame.Size = new Size(ClientSize.Width / 4, ClientSize.Height / 8);
             StartGame.Text = "Начать игру";
+            EasyDiffculty.Text = "Сложность: Легкая";
+            EasyDiffculty.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 - ClientSize.Height / 6);
+            EasyDiffculty.Size = StartGame.Size;
+            MediumDiffculty.Text = "Сложность: Средняя";
+            MediumDiffculty.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2);
+            MediumDiffculty.Size = StartGame.Size;
+            HardDiffculty.Text = "Сложность: Тяжелая";
+            HardDiffculty.Location = new Point(ClientSize.Width / 2 - ClientSize.Width / 8, ClientSize.Height / 2 + ClientSize.Height / 6);
+            HardDiffculty.Size = StartGame.Size;
             GameName.Location = new Point(StartGame.Left - 10, StartGame.Top - 40);
             GameName.Size = new Size(ClientSize.Width / 4 + 40, ClientSize.Height / 16);
             GameName.Text = "Defeat the Aliens";
@@ -201,6 +262,11 @@ namespace _132134412312
             LivesLabel.Location = new Point(ClientSize.Width - 100, 0);
             LivesLabel.Size = new Size(100, 20);
             LivesLabel.Text = "Жизни: " + Lives.ToString();
+            RestartGame.Text = "Начать занового?";
+            RestartGame.Location = StartGame.Location;
+            RestartGame.Size = RestartGame.Size;
+            FormWidth = ClientSize.Width;
+            FormHeight = ClientSize.Height;
             Controls.Add(GameName);
             Controls.Add(StartGame);
             Controls.Add(CloseGame);            
@@ -230,6 +296,43 @@ namespace _132134412312
                 };
             }
         }
+        public void InitializeGame()
+        {
+            Controls.Remove(StartGame);
+            Controls.Remove(CloseGame);
+            Controls.Remove(GameName);
+            Controls.Remove(GameOver);
+            Controls.Remove(RestartGame);
+            Controls.Remove(EasyDiffculty);
+            Controls.Remove(MediumDiffculty);
+            Controls.Remove(HardDiffculty);
+            Controls.Remove(PauseGame);
+            Controls.Add(ScoreLabel);
+            Controls.Add(LivesLabel);
+            ScoreLabel.Text = "Очки: " + Score.ToString();
+            LivesLabel.Text = "Жизни: " + Lives.ToString();
+            Paint += (sender, args) =>
+            {
+                var g = args.Graphics;
+                g.DrawImage(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position);
+            };
+            ShootTimer.Start();
+            SpawnEnemy.Start();
+            GameStarted = true;
+        }
+        public void Restart()
+        {
+            InitializeGame();
+            Enemies = new List<Enemy>();
+            PlayerPlane.Bullets = new List<Bullet>();
+            Invalidate();
+            Paint += (sender, args) =>
+            {
+                var g = args.Graphics;
+                g.Clear(BackColor);
+                g.DrawImage(PlayerPlane.PlayerStandinOnPlace, PlayerPlane.Position);
+            };
+        }
 
         private void InitializeComponent()
         {
@@ -238,10 +341,9 @@ namespace _132134412312
             // Form1
             // 
             this.ClientSize = new System.Drawing.Size(1024, 768);
-            FormHeight = ClientSize.Height;
-            FormWidth = ClientSize.Width;
             this.DoubleBuffered = true;
-            this.Name = "Defeat the Aliens"; 
+            this.Name = "Form1";
+            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.Form1_KeyPress);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseMove);
             this.ResumeLayout(false);
 
@@ -249,13 +351,29 @@ namespace _132134412312
 
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!IsGameEndedOrStopped)
+            if (GameStarted)
             {
                 if (e.X > PlayerPlane.PlayerStandinOnPlace.Width / 2 && e.X < ClientSize.Width - PlayerPlane.PlayerStandinOnPlace.Width / 2)
                 {
                     PlayerPlane.Movement(e.X - PlayerPlane.PlayerStandinOnPlace.Width / 2);
                     Invalidate();
                 }
+            }
+        }
+
+        private void Form1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if(e.KeyChar == (char)Keys.Escape)
+            {
+                GameStarted = false;                
+                PauseGame.Text = "Продолжить";
+                PauseGame.Location = StartGame.Location;
+                PauseGame.Size = StartGame.Size;
+                GameStatus.Text = "Игра приостановлена";
+                GameStatus.Location = new Point(GameName.Location.X, GameName.Location.Y);
+                GameStatus.Size = GameName.Size;
+                Controls.Add(PauseGame);
+                Controls.Add(CloseGame);
             }
         }
     }
